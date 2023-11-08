@@ -1,6 +1,7 @@
 import json
 import csv
 import datetime as dt
+import time
 import heapq
 
 
@@ -50,14 +51,14 @@ class Node:
 class Driver:
 
     def __init__(self, timestamp: str = None, lat: float = None, lon: float = None) -> None:
-        self.time = timestamp # convert to dt.datetime obj
+        self.time = time.mktime(dt.datetime.strptime(timestamp, date_format).timetuple())
         self.lat = lat
         self.lon = lon
 
 class Passenger:
 
     def __init__(self, timestamp: str = None, s_lat: float = None, s_lon: float = None, e_lat: float = None, e_lon: float = None) -> None:
-        self.time = timestamp # convert to dt.datetime obj
+        self.time = time.mktime(dt.datetime.strptime(timestamp, date_format).timetuple())
         self.start_lat = s_lat
         self.start_lon = s_lon
         self.end_lat = e_lat
@@ -94,14 +95,18 @@ for start_node in adjList:
 
 ### Reading Drivers and Passengers
 
+date_format = "%m/%d/%Y %H:%M:%S"
+
 drivers = []
 with open('drivers.csv', 'r') as d:
+    _ = d.readline()
     d_reader = csv.reader(d)
     for d in d_reader:
         drivers.append(Driver(*d))
 
 passengers = []
 with open('passengers.csv', 'r') as p:
+    _ = p.readline()
     p_reader = csv.reader(p)
     for p in p_reader:
         passengers.append(Passenger(*p))
