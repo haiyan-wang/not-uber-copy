@@ -2,27 +2,30 @@ from importlib import reload
 import classes
 reload(classes)
 
+import os
 import json
 import csv
 from collections import deque
 import heapq
 
+
+
+NODES = {} # <node_id: Node_Object>
+DRIVERS = []
+PASSENGERS = []
+
 def initialize():
+
+    rootpath = os.path.dirname(os.getcwd())
     
     ### Initialize nodes
-
-    global NODES
-    NODES = {} # <node_id: Node_Object>
-    
-    with open('node_data.json', 'r') as v:
+    with open(rootpath + '/data/node_data.json', 'r') as v:
         n_reader = json.load(v)
-    
     for node_id in n_reader:
         NODES[int(node_id)] = classes.Node(id = node_id, lat = n_reader[node_id]['lat'], lon = n_reader[node_id]['lon'])
 
     ### Initialize edges
-
-    with open('edges.csv', 'r') as e:
+    with open(rootpath + '/data/edges.csv', 'r') as e:
         _ = e.readline()
         e_reader = csv.reader(e)
         for edge in e_reader:
@@ -31,36 +34,25 @@ def initialize():
             length = edge[2]
             weekday_speeds = dict(zip([*range(0, 24)], edge[3:27]))
             weekend_speeds = dict(zip([*range(0, 24)], edge[27:]))
-
             neighbor = classes.Edge(start_node, end_node, length, weekday_speeds, weekend_speeds)
-
             NODES[int(edge[0])].neighbors.append(neighbor)
 
-    ### Initializing drivers
-
-    global DRIVERS
-    DRIVERS = []
-
-    with open('drivers.csv', 'r') as d:
+    ### Initialize drivers
+    with open(rootpath + '/data/drivers.csv', 'r') as d:
         _ = d.readline()
         d_reader = csv.reader(d)
-
         for d in d_reader:
             DRIVERS.append(classes.Driver(*d))
 
-    ### Initializing passengers
-    
-    global PASSENGERS
-    PASSENGERS = []
-
-    with open('passengers.csv', 'r') as p:
+    ### Initialize passengers
+    with open(rootpath + '/data/passengers.csv', 'r') as p:
         _ = p.readline()
         p_reader = csv.reader(p)
-
         for p in p_reader:
             PASSENGERS.append(classes.Passenger(*p))
 
-if __name__ == '__main__':
+def main():
+
     initialize()
 
     i, j = 0, 0 # i is index for passengers, j is index for drivers
@@ -112,3 +104,5 @@ if __name__ == '__main__':
     print(f'Average time for driver to reach passenger: {time_to_passenger/len(PASSENGERS)}')
     print(f'Average time driver is idle: {time_before_assign/len(DRIVERS)}')
 
+if __name__ == '__main__':
+    main()

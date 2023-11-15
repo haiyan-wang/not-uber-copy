@@ -1,43 +1,47 @@
 import datetime as dt
-import time
 import heapq
+
+
 
 class Node:
 
     def __init__(self, id: int = None, lat: float = None, lon: float = None) -> None:
         self.id = id
         self.coords = (lat, lon)
-        self.neighbors = [] # Edge objects
-        self.drivers = [] # Driver objects
+        self.neighbors = [] # Edge objects to node neighbors
+        self.drivers = [] # Driver objects at node
 
     def __eq__(self, other):
         return self.id == other.id
 
-    def shortest_path(self, end_node, start_time: dt.datetime):
+    def shortest_path(self, end_node, start_time: dt.datetime) -> float:
         '''
         Dijkstra's Algorithm to find shortest travel time between two nodes
+
+        Returns -1 if no path is found
         '''
 
         distances = {}
         distances[self.id] = 0
         pq = [(0, self)]
+
         while pq:
-            dist, current_node = heapq.heappop(pq)
+            current_dist, current_node = heapq.heappop(pq)
             
             if current_node == end_node:
-                return dist
+                return current_dist
             
-            if current_node in distances and dist > distances[current_node.id]:
+            if current_node in distances and current_dist > distances[current_node.id]:
                 continue
             
             for edge in current_node.neighbors:
                 neighbor = edge.end_node
-                distance = dist + edge.travel_time(start_time)
-                if neighbor.id not in distances or distance < distances[neighbor.id]:
-                    distances[neighbor.id] = distance
-                    heapq.heappush(pq, (distance, neighbor))
+                new_dist = current_dist + edge.travel_time(start_time) # Heuristic - finding path with shortest time to destination at start time (without accounting for changes during travel)
+                if neighbor.id not in distances or new_dist < distances[neighbor.id]:
+                    distances[neighbor.id] = new_dist
+                    heapq.heappush(pq, (new_dist, neighbor))
                     
-        return distances
+        return -1
 
 class Edge:
 
@@ -58,31 +62,27 @@ class Edge:
             return self.weekend_speeds[hour]
         else:
             return self.weekday_speeds[hour]
-
+        
 class Driver:
 
     def __init__(self, timestamp: str = None, lat: float = None, lon: float = None) -> None:
-        self.time = time.mktime(dt.datetime.strptime(timestamp, "%m/%d/%Y %H:%M:%S").timetuple())
+        self.time = dt.datetime.strptime(timestamp, "%m/%d/%Y %H:%M:%S")
         self.lat = lat
         self.lon = lon
 
 class Passenger:
 
-    def __init__(self, timestamp: str = None, s_lat: float = None, s_lon: float = None, e_lat: float = None, e_lon: float = None) -> None:
+    def __init__(self, timestamp: str = None, start_lat: float = None, start_lon: float = None, end_lat: float = None, end_lon: float = None) -> None:
         self.time = dt.datetime.strptime(timestamp, "%m/%d/%Y %H:%M:%S")
-        self.start_lat = s_lat
-        self.start_lon = s_lon
-        self.end_lat = e_lat
-        self.end_lon = e_lon
+        self.start_coords = (start_lat, start_lon)
+        self.end_coords = (end_lat, end_lon)
 
 class Ride:
 
     def __init__(self, start_time: str = None, end_time: str = None, driver: int = None, passenger: int = None, start_lat: float = None, start_lon: float = None, end_lat: float = None, end_lon: float = None) -> None:
-        self.start_time = start_time # convert to dt.datetime obj
-        self.end_time = end_time # convert to dt.datetime obj
+        self.start_time = dt.datetime.strptime(start_time, "%m/%d/%Y %H:%M:%S")
+        self.end_time = dt.datetime.strptime(end_time, "%m/%d/%Y %H:%M:%S")
         self.driver = driver
         self.passenger = passenger
-        self.start_lat = start_lat
-        self.start_lon = start_lon
-        self.end_lat = end_lat
-        self.end_lon = end_lon
+        self.start_coords = (start_lat, start_lon)
+        self.end_coords = (end_lat, end_lon)
