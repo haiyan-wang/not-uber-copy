@@ -1,0 +1,49 @@
+
+    i, j = 0, 0 # i is index for passengers, j is index for drivers
+    time = 0
+    q = deque() # queue of drivers
+    ongoing_rides = [] # heap for ongoing rides
+    passenger_q = deque() # queue of passengers
+
+    time_before_assign, time_to_passenger, driver_idle_time = 0, 0, 0
+
+    while i < len(PASSENGERS):
+        passenger_q.append((PASSENGERS[i], PASSENGERS[i].time))
+        time = passenger_q[-1][1] # update time
+
+        # adds new drivers and completed rides back into queue in order by time
+        while (j < len(DRIVERS) and DRIVERS[j].time < time) or (ongoing_rides and ongoing_rides[0][1] < time):
+            if DRIVERS and (not ongoing_rides or DRIVERS[j] < ongoing_rides[0][1]):
+                q.append((DRIVERS[j], DRIVERS[j].time))
+                j += 1
+            else:
+                t, driver = heapq.heappop(ongoing_rides)
+                q.append((driver, t))
+
+        if not q:
+            i += 1
+            continue
+
+        while passenger_q and q:
+            new_passenger, passenger_time = passenger_q.popleft()
+            paired_driver, driver_time = q.popleft()
+
+            time_before_assign += max(driver_time, passenger_time) - passenger_time
+            driver_idle_time += max(driver_time, passenger_time) - driver_time
+        
+            # how long ride takes
+            dt = paired_driver.node.shortest_path(new_passenger.start_node) * 3600
+
+            time_to_passenger = dt
+
+            dt += new_passenger.start_node.shortest_path(new_passenger.end_node) * 3600
+
+            # push ride to heap, update location of driver
+            heapq.heappush(ongoing_rides, (max(passenger_time, driver_time) + dt, paired_driver))
+            paired_driver.node = new_passenger.end_node
+
+        i += 1 
+
+    print(f'Average time before ride is assigned: {time_before_assign/len(PASSENGERS)}')
+    print(f'Average time for driver to reach passenger: {time_to_passenger/len(PASSENGERS)}')
+    print(f'Average time driver is idle: {time_before_assign/len(DRIVERS)}')
