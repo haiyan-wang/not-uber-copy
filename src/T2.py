@@ -76,16 +76,16 @@ def main():
 
     while passenger_queue:
 
-        available_drivers = []
+        available_drivers = [] # Available drivers when passenger makes request
 
         # Match passenger and driver
-        passenger = passenger_queue.popleft()
-        try:
-            if driver_queue[0][0].time > passenger.time:
+        passenger = passenger_queue.popleft() # Current passenger request
+        try: # Drivers available
+            if driver_queue[0][0].time > passenger.time: # If no available drivers
                 driver, _ = heapq.heappop(driver_queue)
                 available_drivers.append(driver)
             else:
-                while driver_queue and driver_queue[0][0].time <= passenger.time:
+                while driver_queue and driver_queue[0][0].time <= passenger.time: # Get all available drivers at current time
                     driver, _ = heapq.heappop(driver_queue)
                     available_drivers.append(driver)
         except:
@@ -94,6 +94,7 @@ def main():
             print(f'Average Driver Idle Time: {sum(driver_idle_times) / len(driver_idle_times)}')
             return
         
+        # Get closest driver
         min_dist = float('inf')
         assigned_driver = None
         for driver in available_drivers:
@@ -112,11 +113,14 @@ def main():
         passenger_wait_times.append(passenger_wait_time)
         driver_idle_times.append(driver_idle_time)
 
-        #p = random.randint(1, 15)
-        #if p > 1: # Geometric random variable, expect every driver to do 10 rides per night
         assigned_driver.time += dt.timedelta(minutes = 10)
         
+        p = random.randint(1, 15)
         for driver in available_drivers:
+            if driver == assigned_driver:
+                if p > 1: # Geometric random variable, expect every driver to do 10 rides per night
+                    heapq.heappush(driver_queue, (driver, driver.time))
+                    continue        
             heapq.heappush(driver_queue, (driver, driver.time))
     
     print(f'Average Passenger Wait Time: {sum(passenger_wait_times) / len(passenger_wait_times)}')

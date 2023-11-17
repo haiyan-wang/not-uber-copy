@@ -80,7 +80,7 @@ def main():
         # Match passenger and driver
         passenger = passenger_queue.popleft()
 
-        try:
+        try: # Drivers available
             driver, t = heapq.heappop(driver_queue)
         except:
             print(f'No more drivers available. Remaining passengers: {len(passenger_queue)}')
