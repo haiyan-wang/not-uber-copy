@@ -8,6 +8,7 @@ import csv
 from collections import deque
 import heapq
 import datetime as dt
+import random
 
 
 NODES = {} # <node_id: Node_Object>
@@ -78,7 +79,14 @@ def main():
 
         # Match passenger and driver
         passenger = passenger_queue.popleft()
-        driver, t = heapq.heappop(driver_queue)
+
+        try:
+            driver, t = heapq.heappop(driver_queue)
+        except:
+            print(f'No more drivers available. Remaining passengers: {len(passenger_queue)}')
+            print(f'Average Passenger Wait Time: {sum(passenger_wait_times) / len(passenger_wait_times)}')
+            print(f'Average Driver Idle Time: {sum(driver_idle_times) / len(driver_idle_times)}')
+            return
 
         # Check wait times (in minutes)
         passenger_wait_time = 0
@@ -92,10 +100,11 @@ def main():
         passenger_wait_times.append(passenger_wait_time)
         driver_idle_times.append(driver_idle_time)
 
-        driver.time += dt.timedelta(minutes = 10)
-        heapq.heappush(driver_queue, (driver, driver.time))
+        p = random.randint(1, 15)
+        if p > 1: # Geometric random variable, expect every driver to do 10 rides per night
+            driver.time += dt.timedelta(minutes = 10)
+            heapq.heappush(driver_queue, (driver, driver.time))
     
-    print(driver_idle_times)
     print(f'Average Passenger Wait Time: {sum(passenger_wait_times) / len(passenger_wait_times)}')
     print(f'Average Driver Idle Time: {sum(driver_idle_times) / len(driver_idle_times)}')
 
