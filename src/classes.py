@@ -12,7 +12,7 @@ class Node:
         self.neighbors = [] # Edge objects to node neighbors
         self.drivers = [] # Driver objects at node
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.id == other.id
 
     def shortest_path(self, end_node, start_time: dt.datetime) -> float:
@@ -43,6 +43,22 @@ class Node:
                     heapq.heappush(pq, (new_dist, neighbor))
                     
         return -1
+    
+    def partition(self, grid: list = None, grid_params: list = None) -> None:
+        '''
+        Partition node into grid
+            - grid: m x m matrix of lists representing subpartitions (WILL BE MUTATED)
+            - grid_params: [num_partitions, minlat, maxlat, minlon, maxlon]
+        '''
+
+        lat, lon = self.coords
+        num_partitions, minlat, maxlat, minlon, maxlon = grid_params
+        lat_idx, lon_idx = math.floor( math.ceil(math.sqrt(num_partitions))*(lat - minlat) / (maxlat - minlat) ), math.floor( math.ceil(math.sqrt(num_partitions))*(lon - minlon) / (maxlon - minlon) )
+        if lat_idx == 30:
+            lat_idx -= 1
+        if lon_idx == 30:
+            lon_idx -= 1
+        grid[lat_idx][lon_idx].append(self)
 
 class Edge:
 
@@ -53,7 +69,7 @@ class Edge:
         self.weekday_speeds = weekday_speeds
         self.weekend_speeds = weekend_speeds
 
-    def travel_time(self, start_time: dt.datetime):
+    def travel_time(self, start_time: dt.datetime) -> float:
         '''
         Get time to travel over an edge given start time
         '''
@@ -72,19 +88,19 @@ class Driver:
         self.coords = (lat, lon)
         self.node = node
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.id == other.id
     
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self.time < other.time
     
-    def __le__(self, other):
+    def __le__(self, other) -> bool:
         return self.time <= other.time
     
-    def __gt__(self, other):
+    def __gt__(self, other) -> bool:
         return self.time > other.time
     
-    def __ge__(self, other):
+    def __ge__(self, other) -> bool:
         return self.time >= other.time
 
 class Passenger:
@@ -97,22 +113,22 @@ class Passenger:
         self.start_node = start_node
         self.end_node = end_node
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.id == other.id
     
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self.time < other.time
     
-    def __le__(self, other):
+    def __le__(self, other) -> bool:
         return self.time <= other.time
     
-    def __gt__(self, other):
+    def __gt__(self, other) -> bool:
         return self.time > other.time
     
-    def __ge__(self, other):
+    def __ge__(self, other) -> bool:
         return self.time >= other.time
     
-    def dist(self, driver: Driver):
+    def dist(self, driver: Driver) -> float:
         return math.sqrt((self.start_coords[0] - driver.coords[0])**2 + (self.start_coords[1] - driver.coords[1])**2)
 
 class Ride:

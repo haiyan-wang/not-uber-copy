@@ -9,12 +9,16 @@ from collections import deque
 import heapq
 import datetime as dt
 import random
+import math
 
 
 NODES = {} # <node_id: Node_Object>
 NODE_COORDS = {} # <(lat, lon): Node_Object>
 DRIVERS = []
 PASSENGERS = []
+PARTITIONS = 900
+MINLAT, MINLON, MAXLAT, MAXLON = float('inf'), float('inf'), float('-inf'), float('-inf') # Getting edges for grid partitioning
+GRID = [[[] for i in range(math.ceil(math.sqrt(PARTITIONS)))] for j in range(math.ceil(math.sqrt(PARTITIONS)))]
 
 def initialize():
 
@@ -27,6 +31,19 @@ def initialize():
         node = classes.Node(id = node_id, lat = n_reader[node_id]['lat'], lon = n_reader[node_id]['lon'])
         NODES[int(node_id)] = node
         NODE_COORDS[(n_reader[node_id]['lat'], n_reader[node_id]['lon'])] = node
+
+        global MINLAT, MINLON, MAXLAT, MAXLON
+        if n_reader[node_id]['lat'] < MINLAT:
+            MINLAT = n_reader[node_id]['lat']
+        if n_reader[node_id]['lon'] < MINLON:
+            MINLON = n_reader[node_id]['lon']
+        if n_reader[node_id]['lat'] > MAXLAT:
+            MAXLAT = n_reader[node_id]['lat']
+        if n_reader[node_id]['lon'] > MAXLON:
+            MAXLON = n_reader[node_id]['lon']
+    for node in NODES.values():
+        node.partition(GRID, [PARTITIONS, MINLAT, MAXLAT, MINLON, MAXLON])
+    print(GRID)
 
     ### Initialize edges
     with open(rootpath + '/data/edges.csv', 'r') as e:
