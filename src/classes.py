@@ -1,5 +1,6 @@
 import datetime as dt
 import heapq
+import math
 
 
 
@@ -110,6 +111,9 @@ class Passenger:
     
     def __ge__(self, other):
         return self.time >= other.time
+    
+    def dist(self, driver: Driver):
+        return math.sqrt((self.start_coords[0] - driver.coords[0])**2 + (self.start_coords[1] - driver.coords[1])**2)
 
 class Ride:
 
