@@ -65,17 +65,51 @@ class Edge:
         
 class Driver:
 
-    def __init__(self, timestamp: str = None, lat: float = None, lon: float = None) -> None:
+    def __init__(self, id: int = None, timestamp: str = None, lat: float = None, lon: float = None, node: Node = None) -> None:
+        self.id = id
         self.time = dt.datetime.strptime(timestamp, "%m/%d/%Y %H:%M:%S")
-        self.lat = lat
-        self.lon = lon
+        self.coords = (lat, lon)
+        self.node = node
+
+    def __eq__(self, other):
+        return self.id == other.id
+    
+    def __lt__(self, other):
+        return self.time < other.time
+    
+    def __le__(self, other):
+        return self.time <= other.time
+    
+    def __gt__(self, other):
+        return self.time > other.time
+    
+    def __ge__(self, other):
+        return self.time >= other.time
 
 class Passenger:
 
-    def __init__(self, timestamp: str = None, start_lat: float = None, start_lon: float = None, end_lat: float = None, end_lon: float = None) -> None:
+    def __init__(self, id: int = None, timestamp: str = None, start_lat: float = None, start_lon: float = None, end_lat: float = None, end_lon: float = None, start_node: Node = None, end_node: Node = None) -> None:
+        self.id = id
         self.time = dt.datetime.strptime(timestamp, "%m/%d/%Y %H:%M:%S")
         self.start_coords = (start_lat, start_lon)
         self.end_coords = (end_lat, end_lon)
+        self.start_node = start_node
+        self.end_node = end_node
+
+    def __eq__(self, other):
+        return self.id == other.id
+    
+    def __lt__(self, other):
+        return self.time < other.time
+    
+    def __le__(self, other):
+        return self.time <= other.time
+    
+    def __gt__(self, other):
+        return self.time > other.time
+    
+    def __ge__(self, other):
+        return self.time >= other.time
 
 class Ride:
 

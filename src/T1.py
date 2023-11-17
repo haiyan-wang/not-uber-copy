@@ -7,10 +7,11 @@ import json
 import csv
 from collections import deque
 import heapq
-
+import datetime as dt
 
 
 NODES = {} # <node_id: Node_Object>
+NODE_COORDS = {} # <(lat, lon): Node_Object>
 DRIVERS = []
 PASSENGERS = []
 
@@ -22,7 +23,9 @@ def initialize():
     with open(rootpath + '/data/node_data.json', 'r') as v:
         n_reader = json.load(v)
     for node_id in n_reader:
-        NODES[int(node_id)] = classes.Node(id = node_id, lat = n_reader[node_id]['lat'], lon = n_reader[node_id]['lon'])
+        node = classes.Node(id = node_id, lat = n_reader[node_id]['lat'], lon = n_reader[node_id]['lon'])
+        NODES[int(node_id)] = node
+        NODE_COORDS[(n_reader[node_id]['lat'], n_reader[node_id]['lon'])] = node
 
     ### Initialize edges
     with open(rootpath + '/data/edges.csv', 'r') as e:
@@ -41,68 +44,60 @@ def initialize():
     with open(rootpath + '/data/drivers.csv', 'r') as d:
         _ = d.readline()
         d_reader = csv.reader(d)
+        id = 1
         for d in d_reader:
-            DRIVERS.append(classes.Driver(*d))
+            time, lat, lon = d
+            #DRIVERS.append(classes.Driver(id = id, timestamp = time, lat = float(lat), lon = float(lon), node = NODE_COORDS[(float(lat), float(lon))]))
+            DRIVERS.append(classes.Driver(id = id, timestamp = time, lat = float(lat), lon = float(lon)))
+            id += 1
 
     ### Initialize passengers
     with open(rootpath + '/data/passengers.csv', 'r') as p:
         _ = p.readline()
         p_reader = csv.reader(p)
+        id = 1
         for p in p_reader:
-            PASSENGERS.append(classes.Passenger(*p))
+            time, start_lat, start_lon, end_lat, end_lon = p
+            #PASSENGERS.append(classes.Passenger(id = id, timestamp = time, start_lat = float(start_lat), start_lon = float(start_lon), end_lat = float(end_lat), end_lon = float(end_lon), start_node = NODE_COORDS[(float(start_lat), float(start_lon))], end_node = NODE_COORDS[(float(end_lat), float(end_lon))]))
+            PASSENGERS.append(classes.Passenger(id = id, timestamp = time, start_lat = float(start_lat), start_lon = float(start_lon), end_lat = float(end_lat), end_lon = float(end_lon)))
+            id += 1
 
 def main():
 
     initialize()
 
-    i, j = 0, 0 # i is index for passengers, j is index for drivers
-    time = 0
-    q = deque() # queue of drivers
-    ongoing_rides = [] # heap for ongoing rides
-    passenger_q = deque() # queue of passengers
+    passenger_wait_times, driver_idle_times = [], [] # Metrics
 
-    time_before_assign, time_to_passenger, driver_idle_time = 0, 0, 0
+    driver_queue = [] # Priority queue for driver by available time
+    for driver in DRIVERS:
+        heapq.heappush(driver_queue, (driver, driver.time))
+    passenger_queue = deque(PASSENGERS) # Priority queue for passenger by ride request time (already sorted and no pushes so we use deque)
 
-    while i < len(PASSENGERS):
-        passenger_q.append((PASSENGERS[i], PASSENGERS[i].time))
-        time = passenger_q[-1][1] # update time
 
-        # adds new drivers and completed rides back into queue in order by time
-        while (j < len(DRIVERS) and DRIVERS[j].time < time) or (ongoing_rides and ongoing_rides[0][1] < time):
-            if DRIVERS and (not ongoing_rides or DRIVERS[j] < ongoing_rides[0][1]):
-                q.append((DRIVERS[j], DRIVERS[j].time))
-                j += 1
-            else:
-                t, driver = heapq.heappop(ongoing_rides)
-                q.append((driver, t))
+    while passenger_queue:
 
-        if not q:
-            i += 1
-            continue
+        # Match passenger and driver
+        passenger = passenger_queue.popleft()
+        driver, t = heapq.heappop(driver_queue)
 
-        while passenger_q and q:
-            new_passenger, passenger_time = passenger_q.popleft()
-            paired_driver, driver_time = q.popleft()
+        # Check wait times (in minutes)
+        passenger_wait_time = 0
+        driver_idle_time = 0
+        if driver.time < passenger.time: # Driver ready before passenger
+            wait = passenger.time - driver.time
+            driver_idle_time += wait.total_seconds() / 60
+        elif driver.time > passenger.time: # Passenger ready before driver
+            wait = driver.time - passenger.time
+            passenger_wait_time += wait.total_seconds() / 60
+        passenger_wait_times.append(passenger_wait_time)
+        driver_idle_times.append(driver_idle_time)
 
-            time_before_assign += max(driver_time, passenger_time) - passenger_time
-            driver_idle_time += max(driver_time, passenger_time) - driver_time
-        
-            # how long ride takes
-            dt = paired_driver.node.shortest_path(new_passenger.start_node) * 3600
-
-            time_to_passenger = dt
-
-            dt += new_passenger.start_node.shortest_path(new_passenger.end_node) * 3600
-
-            # push ride to heap, update location of driver
-            heapq.heappush(ongoing_rides, (max(passenger_time, driver_time) + dt, paired_driver))
-            paired_driver.node = new_passenger.end_node
-
-        i += 1 
-
-    print(f'Average time before ride is assigned: {time_before_assign/len(PASSENGERS)}')
-    print(f'Average time for driver to reach passenger: {time_to_passenger/len(PASSENGERS)}')
-    print(f'Average time driver is idle: {time_before_assign/len(DRIVERS)}')
+        driver.time += dt.timedelta(minutes = 10)
+        heapq.heappush(driver_queue, (driver, driver.time))
+    
+    print(driver_idle_times)
+    print(f'Average Passenger Wait Time: {sum(passenger_wait_times) / len(passenger_wait_times)}')
+    print(f'Average Driver Idle Time: {sum(driver_idle_times) / len(driver_idle_times)}')
 
 if __name__ == '__main__':
     main()
