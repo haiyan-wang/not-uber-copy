@@ -10,8 +10,7 @@ import heapq
 import datetime as dt
 import random
 import math
-
-
+import time
 
 ### Data Objects
 NODES = {} # <node_id: Node_Object>
@@ -24,6 +23,14 @@ PARTITIONS = 900
 MINLAT, MINLON, MAXLAT, MAXLON = float('inf'), float('inf'), float('-inf'), float('-inf') # Getting edges for grid partitioning
 GRID = [[[] for i in range(math.ceil(math.sqrt(PARTITIONS)))] for j in range(math.ceil(math.sqrt(PARTITIONS)))]
 GRID_PARAMS = []
+
+### Preprocessed information about network
+AVG_MPH = 0
+NUM_ROADS = 0
+
+### Based on sampling two points in NYC and calculating lat/lon mile distance
+LON2MI = 45.5
+LAT2MI = 60.0
 
 def initialize():
 
@@ -70,6 +77,19 @@ def initialize():
             weekend_speeds = dict(zip([*range(0, 24)], edge[27:]))
             neighbor = classes.Edge(start_node, end_node, length, weekday_speeds, weekend_speeds)
             NODES[int(edge[0])].neighbors.append(neighbor) # Add edge to neighbors of start node
+            
+            # Network data (preprocessing)
+            avg_speed = 0
+            for _, val in weekday_speeds.items():
+                avg_speed += float(val)
+            for _, val in weekend_speeds.items():
+                avg_speed += float(val)
+            avg_speed /= len(weekday_speeds) + len(weekend_speeds)
+            
+            global AVG_MPH
+            global NUM_ROADS
+            AVG_MPH += avg_speed
+            NUM_ROADS += 1
 
     ### Initialize drivers
     with open(rootpath + '/data/drivers.csv', 'r') as d:
@@ -95,16 +115,35 @@ def initialize():
         for p in p_reader:
             time, start_lat, start_lon, end_lat, end_lon = p
             passenger = classes.Passenger(id = id, timestamp = time, start_lat = float(start_lat), start_lon = float(start_lon), end_lat = float(end_lat), end_lon = float(end_lon))
-            passenger.start_node = passenger.assign_node(passenger.coords, GRID, GRID_PARAMS)
-            passenger.end = passenger.assign_node(passenger.end_coords, GRID, GRID_PARAMS)
+            passenger.node = passenger.assign_node(passenger.coords, GRID, GRID_PARAMS)
+            passenger.end_node = passenger.assign_node(passenger.end_coords, GRID, GRID_PARAMS)
             PASSENGERS.append(passenger)
             id += 1
+            
+    ### Average MPH on network
+    AVG_MPH /= NUM_ROADS
+    print(f'Average MPH: {AVG_MPH}')
+
+def manhattan_est_time(start_coords, end_coords):
+    '''
+    Estimate of time needed to travel path (based on Manhattan distance and average speed limit across network)
+    '''
+
+    lat_dist = abs(start_coords[0] - end_coords[0])
+    lon_dist = abs(start_coords[1] - end_coords[1])
+    
+    mi_dist = lat_dist * LAT2MI + lon_dist * LON2MI
+    approx_drive_time = mi_dist / AVG_MPH * 60
+    
+    return approx_drive_time
 
 def main():
 
     initialize()
 
-    passenger_wait_times, driver_idle_times = [], [] # Metrics
+    # Metrics
+    passenger_wait_times, driver_idle_times = [], [] 
+    total_ride_profit = 0
 
     driver_queue = [] # Priority queue for driver by available time
     for driver in DRIVERS:
@@ -126,9 +165,10 @@ def main():
                     driver, _ = heapq.heappop(driver_queue)
                     available_drivers.append(driver)
         except:
-            print(f'No more drivers available. Remaining passengers: {len(passenger_queue)}')
-            print(f'Average Passenger Wait Time: {sum(passenger_wait_times) / len(passenger_wait_times)}')
-            print(f'Average Driver Idle Time: {sum(driver_idle_times) / len(driver_idle_times)}')
+            print(f'No more drivers available. Remaining passengers: {len(passenger_queue)} minutes')
+            print(f'Average Passenger Wait Time: {sum(passenger_wait_times) / len(passenger_wait_times)} minutes')
+            print(f'Average Driver Idle Time: {sum(driver_idle_times) / len(driver_idle_times)} minutes')
+            print(f'Average Driver Profit: {total_ride_profit / len(DRIVERS)} minutes')
             return
         
         # Get closest driver
@@ -147,21 +187,31 @@ def main():
         elif assigned_driver.time > passenger.time: # Passenger ready before driver
             wait = assigned_driver.time - passenger.time
             passenger_wait_time += wait.total_seconds() / 60
+        
+        # Approximate wait and driving time
+        approx_arrival_time = manhattan_est_time(driver.coords, passenger.coords)
+        approx_drive_time = manhattan_est_time(passenger.coords, passenger.end_coords)
+        total_ride_profit += approx_drive_time - approx_arrival_time
+        passenger_wait_time += approx_arrival_time + approx_drive_time
         passenger_wait_times.append(passenger_wait_time)
         driver_idle_times.append(driver_idle_time)
-
-        assigned_driver.time += dt.timedelta(minutes = 10)
         
         p = random.randint(1, 15)
         for driver in available_drivers:
             if driver == assigned_driver:
                 if p > 1: # Geometric random variable, expect every driver to do 10 rides per night
+                    assigned_driver.time += dt.timedelta(minutes = 10)
                     heapq.heappush(driver_queue, (driver, driver.time))
                     continue        
             heapq.heappush(driver_queue, (driver, driver.time))
     
-    print(f'Average Passenger Wait Time: {sum(passenger_wait_times) / len(passenger_wait_times)}')
-    print(f'Average Driver Idle Time: {sum(driver_idle_times) / len(driver_idle_times)}')
+    print(f'Average Passenger Wait Time: {sum(passenger_wait_times) / len(passenger_wait_times)} minutes')
+    print(f'Average Driver Idle Time: {sum(driver_idle_times) / len(driver_idle_times)} minutes')
+    print(f'Total Driver Profit: {total_ride_profit} minutes')
+    print(f'Average Driver Profit: {total_ride_profit / len(DRIVERS)} minutes')
 
 if __name__ == '__main__':
+    START = time.time() # Timing simulation
     main()
+    END = time.time() # Timing simulation
+    print(f'Simulation Runtime: {END - START} seconds')

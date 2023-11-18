@@ -10,6 +10,7 @@ import heapq
 import datetime as dt
 import random
 import math
+import time
 
 
 
@@ -95,8 +96,8 @@ def initialize():
         for p in p_reader:
             time, start_lat, start_lon, end_lat, end_lon = p
             passenger = classes.Passenger(id = id, timestamp = time, start_lat = float(start_lat), start_lon = float(start_lon), end_lat = float(end_lat), end_lon = float(end_lon))
-            passenger.start_node = passenger.assign_node(passenger.coords, GRID, GRID_PARAMS)
-            passenger.end = passenger.assign_node(passenger.end_coords, GRID, GRID_PARAMS)
+            passenger.node = passenger.assign_node(passenger.coords, GRID, GRID_PARAMS)
+            passenger.end_node = passenger.assign_node(passenger.end_coords, GRID, GRID_PARAMS)
             PASSENGERS.append(passenger)
             id += 1
 
@@ -105,4 +106,7 @@ def main():
     initialize()
 
 if __name__ == '__main__':
+    START = time.time() # Timing simulation
     main()
+    END = time.time() # Timing simulation
+    print(f'Simulation Runtime: {END - START} seconds')

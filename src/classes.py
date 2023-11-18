@@ -48,6 +48,7 @@ class Node(Object):
 
     def __init__(self, id: int = None, lat: float = None, lon: float = None) -> None:
         super().__init__(id, lat, lon)
+
         self.neighbors = [] # Edge objects to node neighbors
         self.drivers = [] # Driver objects at node
 
@@ -85,23 +86,27 @@ class Node(Object):
         Partition node into grid
             - grid: m x m matrix of lists representing subpartitions (WILL BE MUTATED)
             - grid_params: [num_partitions, minlat, maxlat, minlon, maxlon]
+
+        grid and grid_params are global variables in each file that are set by the initialize function
         '''
 
         lat, lon = self.coords
         num_partitions, minlat, maxlat, minlon, maxlon = grid_params
-        lat_idx, lon_idx = math.floor( math.ceil(math.sqrt(num_partitions))*(lat - minlat) / (maxlat - minlat) ), math.floor( math.ceil(math.sqrt(num_partitions))*(lon - minlon) / (maxlon - minlon) )
+        lat_idx, lon_idx = math.floor( math.ceil(math.sqrt(num_partitions))*(lat - minlat) / (maxlat - minlat) ), math.floor( math.ceil(math.sqrt(num_partitions))*(lon - minlon) / (maxlon - minlon) ) # Index of subpartition in grid
+        
+        # Edge cases
         if lat_idx == 30:
-            lat_idx -= 1
+            lat_idx -= 1 
         if lon_idx == 30:
             lon_idx -= 1
-        grid[lat_idx][lon_idx].append(self)
+
+        grid[lat_idx][lon_idx].append(self) # Add node to appropriate subpartition
         
 class Person(Object):
 
     def __init__(self, id: int = None, timestamp: str = None, lat: float = None, lon: float = None) -> None:
         super().__init__(id, lat, lon)
         self.time = dt.datetime.strptime(timestamp, "%m/%d/%Y %H:%M:%S")
-        self.node = None
 
     def __lt__(self, other) -> bool:
         return self.time < other.time
@@ -118,12 +123,15 @@ class Person(Object):
     def partition(self, coords: tuple = None, grid_params: list = None) -> tuple:
         '''
         Find subpartition of Person
+            - coods: Lat/lon coordinates of object to be partitioned
             - grid_params: [num_partitions, minlat, maxlat, minlon, maxlon]
         '''
 
         lat, lon = coords
         num_partitions, minlat, maxlat, minlon, maxlon = grid_params
         lat_idx, lon_idx = math.floor( math.ceil(math.sqrt(num_partitions))*(lat - minlat) / (maxlat - minlat) ), math.floor( math.ceil(math.sqrt(num_partitions))*(lon - minlon) / (maxlon - minlon) )
+
+        # Edge cases
         if lat_idx >= 30:
             lat_idx = 29
         elif lat_idx < 0:
@@ -133,28 +141,32 @@ class Person(Object):
         elif lon_idx < 0:
             lon_idx = 0
 
+        # Index of subpartition in grid matrix
         return (lat_idx, lon_idx)
     
     def assign_node(self, coords: tuple = None, grid: list = None, grid_params: list = None) -> Node:
         '''
         Assign Person to nearest node given coordinates and partition grid
+            - - coods: Lat/lon coordinates of object to be partitioned
             - grid: nodes in graph grouped by subpartition
             - grid_params: [num_partitions, minlat, maxlat, minlon, maxlon]
         '''
 
-        lat_idx, lon_idx = self.partition(coords, grid_params)
+        lat_idx, lon_idx = self.partition(coords, grid_params) # Get subpartition of object
 
+        # Get surrounding subpartitions (max 3x3 grid surrounding subpartition)
         surrounding_grid = []
         for i in range(-1, 1):
             for j in range(-1, 1):
                 surrounding_grid.append((abs(lat_idx+i), abs(lon_idx+j)))
-        
         search_space = list(set(surrounding_grid))
 
+        # Get all nodes in search space
         nodes = []
         for idx1, idx2 in search_space:
             nodes.extend(grid[idx1][idx2])
 
+        # Find nearest node
         nearest_node = None
         min_dist = float('inf')
         for node in nodes:
@@ -169,15 +181,12 @@ class Driver(Person):
     def __init__(self, id: int = None, timestamp: str = None, lat: float = None, lon: float = None) -> None:
         super().__init__(id, timestamp, lat, lon)
 
-        self.node = None
-
 class Passenger(Person):
 
     def __init__(self, id: int = None, timestamp: str = None, start_lat: float = None, start_lon: float = None, end_lat: float = None, end_lon: float = None, start_node: Node = None, end_node: Node = None) -> None:
         super().__init__(id, timestamp, start_lat, start_lon)
         self.end_coords = (end_lat, end_lon)
 
-        self.start_node = None
         self.end_node = None 
 
 class Edge:
