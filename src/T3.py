@@ -19,6 +19,7 @@ PASSENGERS = []
 PARTITIONS = 900
 MINLAT, MINLON, MAXLAT, MAXLON = float('inf'), float('inf'), float('-inf'), float('-inf') # Getting edges for grid partitioning
 GRID = [[[] for i in range(math.ceil(math.sqrt(PARTITIONS)))] for j in range(math.ceil(math.sqrt(PARTITIONS)))]
+GRID_PARAMS = []
 
 def initialize():
 
@@ -41,8 +42,10 @@ def initialize():
             MAXLAT = n_reader[node_id]['lat']
         if n_reader[node_id]['lon'] > MAXLON:
             MAXLON = n_reader[node_id]['lon']
+    global GRIDPARAMS
+    GRIDPARAMS.extend([PARTITIONS, MINLAT, MAXLAT, MINLON, MAXLON])
     for node in NODES.values():
-        node.partition(GRID, [PARTITIONS, MINLAT, MAXLAT, MINLON, MAXLON])
+        node.partition(GRID, GRIDPARAMS)
     print(GRID)
 
     ### Initialize edges
