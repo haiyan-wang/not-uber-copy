@@ -115,18 +115,13 @@ class Person(Object):
     def __ge__(self, other) -> bool:
         return self.time >= other.time
 
-class Driver(Person):
-
-    def __init__(self, id: int = None, timestamp: str = None, lat: float = None, lon: float = None) -> None:
-        super().__init__(id, timestamp, lat, lon)
-    
-    def partition(self, grid_params: list = None) -> tuple:
+    def partition(self, coords: tuple = None, grid_params: list = None) -> tuple:
         '''
-        Partition driver into grid
+        Find subpartition of Person
             - grid_params: [num_partitions, minlat, maxlat, minlon, maxlon]
         '''
 
-        lat, lon = self.coords
+        lat, lon = coords
         num_partitions, minlat, maxlat, minlon, maxlon = grid_params
         lat_idx, lon_idx = math.floor( math.ceil(math.sqrt(num_partitions))*(lat - minlat) / (maxlat - minlat) ), math.floor( math.ceil(math.sqrt(num_partitions))*(lon - minlon) / (maxlon - minlon) )
         if lat_idx >= 30:
@@ -140,19 +135,19 @@ class Driver(Person):
 
         return (lat_idx, lon_idx)
     
-    def assign_node(self, grid: list = None, grid_params: list = None) -> None:
+    def assign_node(self, coords: tuple = None, grid: list = None, grid_params: list = None) -> Node:
         '''
-        Assign driver to nearest node given coordinates and partition grid
+        Assign Person to nearest node given coordinates and partition grid
             - grid: nodes in graph grouped by subpartition
             - grid_params: [num_partitions, minlat, maxlat, minlon, maxlon]
         '''
 
-        lat_idx, lon_idx = self.partition(grid_params)
+        lat_idx, lon_idx = self.partition(coords, grid_params)
 
         surrounding_grid = []
         for i in range(-1, 1):
             for j in range(-1, 1):
-                surrounding_grid.append((math.abs(lat_idx+i), math.abs(lon_idx+j)))
+                surrounding_grid.append((abs(lat_idx+i), abs(lon_idx+j)))
         
         search_space = list(set(surrounding_grid))
 
@@ -167,84 +162,23 @@ class Driver(Person):
                 nearest_node = node
                 min_dist = math.sqrt((self.coords[0] - node.coords[0])**2 + (self.coords[1] - node.coords[1])**2)
 
-        self.node = nearest_node
+        return nearest_node
 
-class Passenger:
+class Driver(Person):
+
+    def __init__(self, id: int = None, timestamp: str = None, lat: float = None, lon: float = None) -> None:
+        super().__init__(id, timestamp, lat, lon)
+
+        self.node = None
+
+class Passenger(Person):
 
     def __init__(self, id: int = None, timestamp: str = None, start_lat: float = None, start_lon: float = None, end_lat: float = None, end_lon: float = None, start_node: Node = None, end_node: Node = None) -> None:
-        self.id = id
-        self.time = dt.datetime.strptime(timestamp, "%m/%d/%Y %H:%M:%S")
-        self.start_coords = (start_lat, start_lon)
+        super().__init__(id, timestamp, start_lat, start_lon)
         self.end_coords = (end_lat, end_lon)
-        self.start_node = start_node
-        self.end_node = end_node
 
-    def __eq__(self, other) -> bool:
-        return self.id == other.id
-    
-    def __lt__(self, other) -> bool:
-        return self.time < other.time
-    
-    def __le__(self, other) -> bool:
-        return self.time <= other.time
-    
-    def __gt__(self, other) -> bool:
-        return self.time > other.time
-    
-    def __ge__(self, other) -> bool:
-        return self.time >= other.time
-    
-    def dist(self, driver: Driver) -> float:
-        return math.sqrt((self.start_coords[0] - driver.coords[0])**2 + (self.start_coords[1] - driver.coords[1])**2)
-    
-    def partition(self, grid_params: list = None) -> tuple:
-        '''
-        Partition driver into grid
-            - grid_params: [num_partitions, minlat, maxlat, minlon, maxlon]
-        '''
-
-        lat, lon = self.start_coords
-        num_partitions, minlat, maxlat, minlon, maxlon = grid_params
-        lat_idx, lon_idx = math.floor( math.ceil(math.sqrt(num_partitions))*(lat - minlat) / (maxlat - minlat) ), math.floor( math.ceil(math.sqrt(num_partitions))*(lon - minlon) / (maxlon - minlon) )
-        if lat_idx >= 30:
-            lat_idx = 29
-        elif lat_idx < 0:
-            lat_idx = 0
-        if lon_idx >= 30:
-            lon_idx = 29
-        elif lon_idx < 0:
-            lon_idx = 0
-
-        return (lat_idx, lon_idx)
-    
-    def assign_node(self, grid: list = None, grid_params: list = None) -> None:
-        '''
-        Assign driver to nearest node given coordinates and partition grid
-            - grid: nodes in graph grouped by subpartition
-            - grid_params: [num_partitions, minlat, maxlat, minlon, maxlon]
-        '''
-
-        lat_idx, lon_idx = self.partition(grid_params)
-
-        surrounding_grid = []
-        for i in range(-1, 1):
-            for j in range(-1, 1):
-                surrounding_grid.append((math.abs(lat_idx+i), math.abs(lon_idx+j)))
-        
-        search_space = set(surrounding_grid)
-
-        nodes = []
-        for idx1, idx2 in search_space:
-            nodes.extend(grid[idx1][idx2])
-
-        nearest_node = None
-        min_dist = float('inf')
-        for node in nodes:
-            if math.sqrt((self.start_coords[0] - node.coords[0])**2 + (self.start_coords[1] - node.coords[1])**2) < min_dist:
-                nearest_node = node
-                min_dist = math.sqrt((self.start_coords[0] - node.coords[0])**2 + (self.start_coords[1] - node.coords[1])**2)
-
-        self.start_node = nearest_node
+        self.start_node = None
+        self.end_node = None 
 
 class Edge:
 
