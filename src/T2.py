@@ -18,12 +18,6 @@ NODE_COORDS = {} # <(lat, lon): Node_Object>
 DRIVERS = []
 PASSENGERS = []
 
-### Grid Params
-PARTITIONS = 900
-MINLAT, MINLON, MAXLAT, MAXLON = float('inf'), float('inf'), float('-inf'), float('-inf') # Getting edges for grid partitioning
-GRID = [[[] for i in range(math.ceil(math.sqrt(PARTITIONS)))] for j in range(math.ceil(math.sqrt(PARTITIONS)))]
-GRID_PARAMS = []
-
 ### Preprocessed information about network
 AVG_MPH = 0
 NUM_ROADS = 0
@@ -45,23 +39,6 @@ def initialize():
         node = classes.Node(id = node_id, lat = n_reader[node_id]['lat'], lon = n_reader[node_id]['lon'])
         NODES[int(node_id)] = node
         NODE_COORDS[(n_reader[node_id]['lat'], n_reader[node_id]['lon'])] = node
-
-        # Get edges of grid
-        global MINLAT, MINLON, MAXLAT, MAXLON
-        if n_reader[node_id]['lat'] < MINLAT:
-            MINLAT = n_reader[node_id]['lat']
-        if n_reader[node_id]['lon'] < MINLON:
-            MINLON = n_reader[node_id]['lon']
-        if n_reader[node_id]['lat'] > MAXLAT:
-            MAXLAT = n_reader[node_id]['lat']
-        if n_reader[node_id]['lon'] > MAXLON:
-            MAXLON = n_reader[node_id]['lon']
-    
-    # Set grid params
-    global GRID_PARAMS
-    GRID_PARAMS.extend([PARTITIONS, MINLAT, MAXLAT, MINLON, MAXLON])
-    for node in NODES.values():
-        node.partition(GRID, GRID_PARAMS)
 
     ### Initialize edges
     with open(rootpath + '/data/edges.csv', 'r') as e:
@@ -101,7 +78,6 @@ def initialize():
         for d in d_reader:
             time, lat, lon = d
             driver = classes.Driver(id = id, timestamp = time, lat = float(lat), lon = float(lon))
-            driver.node = driver.assign_node(driver.coords, GRID, GRID_PARAMS) # Assign driver to nearest node
             DRIVERS.append(driver)
             id += 1
 
@@ -115,8 +91,6 @@ def initialize():
         for p in p_reader:
             time, start_lat, start_lon, end_lat, end_lon = p
             passenger = classes.Passenger(id = id, timestamp = time, start_lat = float(start_lat), start_lon = float(start_lon), end_lat = float(end_lat), end_lon = float(end_lon))
-            passenger.node = passenger.assign_node(passenger.coords, GRID, GRID_PARAMS)
-            passenger.end_node = passenger.assign_node(passenger.end_coords, GRID, GRID_PARAMS)
             PASSENGERS.append(passenger)
             id += 1
             
