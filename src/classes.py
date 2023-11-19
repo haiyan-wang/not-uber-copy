@@ -213,8 +213,8 @@ class Person(NotUberObject):
 
         # Get surrounding subpartitions (max 3x3 grid surrounding subpartition)
         surrounding_grid = []
-        for i in range(-1, 1):
-            for j in range(-1, 1):
+        for i in range(-1, 2):
+            for j in range(-1, 2):
                 surrounding_grid.append((abs(lat_idx+i), abs(lon_idx+j)))
         search_space = list(set(surrounding_grid))
 
