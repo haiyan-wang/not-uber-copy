@@ -30,6 +30,14 @@ NODE_COORDS = {} # <(lat, lon): Node_Object>
 DRIVERS = []
 PASSENGERS = []
 
+### Preprocessed information about network
+AVG_MPH = 0
+NUM_ROADS = 0
+
+### Based on sampling two points in NYC and calculating lat/lon mile distance
+LON2MI = 45.5
+LAT2MI = 60.0
+
 ### Grid Params
 PARTITIONS = 900
 MINLAT, MINLON, MAXLAT, MAXLON = float('inf'), float('inf'), float('-inf'), float('-inf') # Getting edges for grid partitioning
@@ -82,6 +90,19 @@ def initialize():
             neighbor = classes.Edge(start_node, end_node, length, weekday_speeds, weekend_speeds)
             NODES[int(edge[0])].neighbors.append(neighbor) # Add edge to neighbors of start node
 
+            # Network data (preprocessing)
+            avg_speed = 0
+            for _, val in weekday_speeds.items():
+                avg_speed += float(val)
+            for _, val in weekend_speeds.items():
+                avg_speed += float(val)
+            avg_speed /= len(weekday_speeds) + len(weekend_speeds)
+            
+            global AVG_MPH
+            global NUM_ROADS
+            AVG_MPH += avg_speed
+            NUM_ROADS += 1
+
     ### Initialize drivers
     with open(rootpath + '/data/drivers.csv', 'r') as d:
         _ = d.readline()
@@ -110,6 +131,10 @@ def initialize():
             passenger.end_node = passenger.assign_node(passenger.end_coords, GRID, GRID_PARAMS)
             PASSENGERS.append(passenger)
             id += 1
+
+    ### Average MPH on network
+    AVG_MPH /= NUM_ROADS
+    print(f'Average MPH: {AVG_MPH}')
 
 def main():
 

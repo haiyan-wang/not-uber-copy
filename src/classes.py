@@ -2,6 +2,7 @@ import datetime as dt
 import heapq
 import math
 
+from T1 import LAT2MI, LON2MI
 
 
 class NotUberObject:
@@ -84,6 +85,53 @@ class Node(NotUberObject):
                 if neighbor.id not in distances or new_dist < distances[neighbor.id]:
                     distances[neighbor.id] = new_dist
                     heapq.heappush(pq, (new_dist, neighbor))
+                    
+        return -1
+    
+    def shortest_path_a_star(self, end_node, start_time: dt.datetime, AVG_MPH) -> float:
+        '''
+        A* pathfinding algorithm to find shortest travel time between two nodes. Prioritizes paths that seem to be leading closer to the end_node.
+
+        Returns -1 if no path is found
+        '''
+
+        def heuristic(start: Node, end: Node):
+            '''
+            Heuristic function: Estimate of time needed to travel path (based on Euclidian distance and average speed across network). 
+            The average speed across the network (AVG_MPH) is calculated in the initialize() method. 
+            The LON2MI and LAT2MI are used to convert lat and long to miles based on sampling two points in NYC and calculating lat/lon mile distance.
+            '''
+            lat_dist = abs(start.coords[0] - end.coords[0])
+            lon_dist = abs(start.coords[1] - end.coords[1])
+
+            lat_dist_in_miles = lat_dist * LAT2MI
+            lon_dist_in_miles = lon_dist * LON2MI
+            
+            distance_in_miles = math.sqrt((lat_dist_in_miles)**2 + (lon_dist_in_miles)**2)
+
+            time = distance_in_miles/AVG_MPH
+            return time
+
+        distances = {}
+        distances[self.id] = 0
+        pq = [(0, 0, self)]
+
+        while pq:
+            priority, current_dist, current_node = heapq.heappop(pq)
+            
+            if current_node == end_node:
+                return current_dist
+            
+            if current_node.id in distances and priority > priority[current_node.id]:
+                continue
+            
+            for edge in current_node.neighbors:
+                neighbor = edge.end_node
+                new_dist = current_dist + edge.travel_time(start_time) # Heuristic - finding path with shortest time to destination at start time (without accounting for changes during travel)
+                new_priority = new_dist + heuristic(neighbor, end_node) # new priority for A* algo = time from the start point to neighbor edge + heuristic function for time from neigbor edge to destination edge
+                if neighbor.id not in distances or new_dist < distances[neighbor.id]:
+                    distances[neighbor.id] = new_priority
+                    heapq.heappush(pq, (new_priority, new_dist, neighbor))
                     
         return -1
     
