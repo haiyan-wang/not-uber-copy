@@ -236,9 +236,9 @@ class Edge:
 
         hour = start_time.hour
         if start_time.weekday() > 4:
-            return self.length*float(self.weekend_speeds[hour])
+            return 60*self.length / float(self.weekend_speeds[hour])
         else:
-            return self.length*float(self.weekday_speeds[hour])
+            return 60*self.length / float(self.weekday_speeds[hour])
         
 '''
 class Ride:
