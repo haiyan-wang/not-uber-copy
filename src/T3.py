@@ -226,8 +226,6 @@ def main():
                     continue        
             heapq.heappush(driver_queue, (driver, driver.time))
     
-    print(passenger_wait_times)
-    print(driver_idle_times)
     print(f'Average Passenger Wait Time: {sum(passenger_wait_times) / len(passenger_wait_times)} minutes')
     print(f'Average Driver Idle Time: {sum(driver_idle_times) / len(driver_idle_times)} minutes')
     print(f'Total Driver Profit: {total_ride_profit} minutes')
