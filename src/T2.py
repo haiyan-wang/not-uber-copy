@@ -151,6 +151,7 @@ def main():
         for driver in available_drivers:
             if passenger.euclidean_dist(driver) < min_dist:
                 assigned_driver = driver
+                min_dist = passenger.euclidean_dist(driver)
 
         # Check wait times (in minutes)
         passenger_wait_time = 0

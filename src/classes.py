@@ -4,7 +4,7 @@ import math
 
 
 
-class Object:
+class NotUberObject:
 
     def __init__(self, id: int = None, lat: float = None, lon: float = None) -> None:
         self.id = id
@@ -12,7 +12,13 @@ class Object:
 
         self.node = None
 
-    def euclidean_dist(self, other) -> float:
+    def __eq__(self, other) -> bool:
+        return isinstance(self, NotUberObject) and isinstance(other, NotUberObject) and self.id == other.id
+    
+    def __hash__(self) -> int:
+        return self.id # This is a really bad hashcode but its fine since we're only ever hashing objects of the same type
+
+    def euclidean_dist(self, other, *args, **kwargs) -> float:
         '''
         Return distance between latitude/longitude coordinates
             - Object must have coords attribute
@@ -41,16 +47,16 @@ class Object:
         
         return self.node.shortest_path(end_node = other.node, start_time = time)
 
-    def __eq__(self, other) -> bool:
-        return self.id == other.id
-
-class Node(Object):
+class Node(NotUberObject):
 
     def __init__(self, id: int = None, lat: float = None, lon: float = None) -> None:
         super().__init__(id, lat, lon)
 
         self.neighbors = [] # Edge objects to node neighbors
         self.drivers = [] # Driver objects at node
+
+    def __eq__(self, other) -> bool:
+        return isinstance(self, Node) and isinstance(other, Node) and self.id == other.id
 
     def shortest_path(self, end_node, start_time: dt.datetime) -> float:
         '''
@@ -69,7 +75,7 @@ class Node(Object):
             if current_node == end_node:
                 return current_dist
             
-            if current_node in distances and current_dist > distances[current_node.id]:
+            if current_node.id in distances and current_dist > distances[current_node.id]:
                 continue
             
             for edge in current_node.neighbors:
@@ -102,11 +108,14 @@ class Node(Object):
 
         grid[lat_idx][lon_idx].append(self) # Add node to appropriate subpartition
         
-class Person(Object):
+class Person(NotUberObject):
 
     def __init__(self, id: int = None, timestamp: str = None, lat: float = None, lon: float = None) -> None:
         super().__init__(id, lat, lon)
         self.time = dt.datetime.strptime(timestamp, "%m/%d/%Y %H:%M:%S")
+
+    def __eq__(self, other) -> bool:
+        return isinstance(self, Person) and isinstance(other, Person) and self.id == other.id
 
     def __lt__(self, other) -> bool:
         return self.time < other.time
@@ -181,6 +190,9 @@ class Driver(Person):
     def __init__(self, id: int = None, timestamp: str = None, lat: float = None, lon: float = None) -> None:
         super().__init__(id, timestamp, lat, lon)
 
+    def __eq__(self, other) -> bool:
+        return isinstance(self, Driver) and isinstance(other, Driver) and self.id == other.id
+
 class Passenger(Person):
 
     def __init__(self, id: int = None, timestamp: str = None, start_lat: float = None, start_lon: float = None, end_lat: float = None, end_lon: float = None, start_node: Node = None, end_node: Node = None) -> None:
@@ -189,12 +201,31 @@ class Passenger(Person):
 
         self.end_node = None 
 
+    def __eq__(self, other) -> bool:
+        return isinstance(self, Passenger) and isinstance(other, Passenger) and self.id == other.id
+
+    def euclidean_dist(self, other, time = 'start') -> float:
+        '''
+        Return distance between latitude/longitude coordinates
+            - Object must have coords attribute
+            - time: {'start', 'end'} specifies whether you want the distance to/from the passenger's start location or end location
+        '''
+
+        if not self.coords or not other.coords:
+            print('Missing latitude/longitude coordinates')
+            return
+        
+        if time == 'start':
+            return math.sqrt((self.coords[0] - other.coords[0])**2 + (self.coords[1] - other.coords[1])**2)
+        if time == 'end':
+            return math.sqrt((self.end_coords[0] - other.coords[0])**2 + (self.end_coords[1] - other.coords[1])**2)
+
 class Edge:
 
     def __init__(self, start_node: Node = None, end_node: Node = None, length: float = None, weekday_speeds: dict = None, weekend_speeds: dict = None) -> None:
         self.start_node = start_node
         self.end_node = end_node
-        self.length = length
+        self.length = float(length)
         self.weekday_speeds = weekday_speeds
         self.weekend_speeds = weekend_speeds
 
@@ -205,9 +236,9 @@ class Edge:
 
         hour = start_time.hour
         if start_time.weekday() > 4:
-            return self.weekend_speeds[hour]
+            return self.length*float(self.weekend_speeds[hour])
         else:
-            return self.weekday_speeds[hour]
+            return self.length*float(self.weekday_speeds[hour])
         
 '''
 class Ride:
