@@ -16,61 +16,8 @@ import multiprocessing
 
 ### Data Objects
 NODES = {} # <node_id: Node_Object>
-NODE_COORDS = {} # <(lat, lon): Node_Object>
 DRIVERS = []
 PASSENGERS = []
-
-### These functions enable parallel processing to speed up brute-force initialization
-
-def assign_driver_node(driver: classes.Driver) -> classes.Node:
-
-    min_dist = float('inf')
-    nearest_node = None
-    for node in PARALLELNODES:
-        dist = driver.euclidean_dist(node)
-        if dist < min_dist:
-            min_dist = dist
-            nearest_node = node
-    driver.node = nearest_node
-
-    return driver
-
-def assign_passenger_node(passenger: classes.Passenger) -> tuple:
-            
-    min_dist_start = float('inf')
-    nearest_node_start = None
-    min_dist_end = float('inf')
-    nearest_node_end = None
-    for node in PARALLELNODES:
-        start_dist = passenger.euclidean_dist(node)
-        if start_dist < min_dist_start:
-            min_dist_start = start_dist
-            nearest_node_start = node
-        end_dist = passenger.euclidean_dist(node, time = 'end')
-        if end_dist < min_dist_end:
-            min_dist_end = end_dist
-            nearest_node_end = node
-    passenger.node = nearest_node_start
-    passenger.end_node = nearest_node_end
-
-    return passenger
-
-def generate_network():
-
-    global PARALLELNODES
-    PARALLELNODES = []
-    rootpath = os.path.dirname(os.getcwd())
-
-    ### Initialize nodes
-    with open(rootpath + '/data/node_data.json', 'r') as v:
-        n_reader = json.load(v)
-
-    # Generate Node objects
-    for node_id in n_reader:
-        node = classes.Node(id = node_id, lat = n_reader[node_id]['lat'], lon = n_reader[node_id]['lon'])
-        PARALLELNODES.append(node)
-
-    return PARALLELNODES
 
 def initialize():
 
@@ -84,7 +31,7 @@ def initialize():
     for node_id in n_reader:
         node = classes.Node(id = node_id, lat = n_reader[node_id]['lat'], lon = n_reader[node_id]['lon'])
         NODES[int(node_id)] = node
-        NODE_COORDS[(n_reader[node_id]['lat'], n_reader[node_id]['lon'])] = node
+    print('Nodes initialized')
     
     ### Initialize edges
     with open(rootpath + '/data/edges.csv', 'r') as e:
@@ -100,9 +47,9 @@ def initialize():
             weekend_speeds = dict(zip([*range(0, 24)], edge[27:]))
             neighbor = classes.Edge(start_node, end_node, length, weekday_speeds, weekend_speeds)
             NODES[int(edge[0])].neighbors.append(neighbor) # Add edge to neighbors of start node
+    print('Edges initialized')
 
     ### Initialize drivers
-    temp_drivers = []
     with open(rootpath + '/data/drivers.csv', 'r') as d:
         _ = d.readline()
         d_reader = csv.reader(d)
@@ -112,18 +59,22 @@ def initialize():
         for d in d_reader:
             timestamp, lat, lon = d
             driver = classes.Driver(id = id, timestamp = timestamp, lat = float(lat), lon = float(lon))
-            temp_drivers.append(driver)
+            DRIVERS.append(driver)
             id += 1
 
     # Assign drivers to nearest nodes
-    with multiprocessing.Pool(initializer = generate_network) as pool:
-        results = pool.map(assign_driver_node, temp_drivers, chunksize = 100)
-        global DRIVERS
-        for result in results:
-            DRIVERS.append(result)
+    for driver in DRIVERS:
+        min_dist = float('inf')
+        nearest_node = None
+        for node in NODES.values():
+            dist = driver.euclidean_dist(node)
+            if dist < min_dist:
+                min_dist = dist
+                nearest_node = node
+        driver.node = nearest_node
+    print('Drivers initialized')
 
     ### Initialize passengers
-    temp_passengers = []
     with open(rootpath + '/data/passengers.csv', 'r') as p:
         _ = p.readline()
         p_reader = csv.reader(p)
@@ -133,16 +84,27 @@ def initialize():
         for p in p_reader:
             timestamp, start_lat, start_lon, end_lat, end_lon = p
             passenger = classes.Passenger(id = id, timestamp = timestamp, start_lat = float(start_lat), start_lon = float(start_lon), end_lat = float(end_lat), end_lon = float(end_lon))
-            temp_passengers.append(passenger)
+            PASSENGERS.append(passenger)
             id += 1
 
     # Assign passengers to nearest nodes
-    with multiprocessing.Pool(initializer = generate_network) as pool:
-        results = pool.map(assign_passenger_node, temp_passengers, chunksize = 1000)
-        global PASSENGERS
-        for result in results:
-            PASSENGERS.append(result)
-    end = time.time()
+    for passenger in PASSENGERS:
+        min_dist_start = float('inf')
+        nearest_node_start = None
+        min_dist_end = float('inf')
+        nearest_node_end = None
+        for node in NODES.values():
+            start_dist = passenger.euclidean_dist(node)
+            if start_dist < min_dist_start:
+                min_dist_start = start_dist
+                nearest_node_start = node
+            end_dist = passenger.euclidean_dist(node, time = 'end')
+            if end_dist < min_dist_end:
+                min_dist_end = end_dist
+                nearest_node_end = node
+        passenger.node = nearest_node_start
+        passenger.end_node = nearest_node_end
+    print('Passengers initialized')
 
 def main():
 

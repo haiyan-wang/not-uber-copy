@@ -164,18 +164,19 @@ def main():
             passenger_wait_time += wait.total_seconds() / 60
         
         # Approximate wait and driving time
-        approx_arrival_time = manhattan_est_time(driver.coords, passenger.coords)
-        approx_drive_time = manhattan_est_time(passenger.coords, passenger.end_coords)
-        total_ride_profit += approx_drive_time - approx_arrival_time
-        passenger_wait_time += approx_arrival_time + approx_drive_time
+        approx_arrival_time = manhattan_est_time(driver.coords, passenger.coords) # Time for driver to pick up
+        approx_drive_time = manhattan_est_time(passenger.coords, passenger.end_coords) # Time for driver to drop off
+        total_ride_profit += approx_drive_time - approx_arrival_time # Ride profit
+        passenger_wait_time += approx_arrival_time # Passenger wait time (time for match + time for pickup)
         passenger_wait_times.append(passenger_wait_time)
         driver_idle_times.append(driver_idle_time)
         
         p = random.randint(1, 15)
         for driver in available_drivers:
             if driver == assigned_driver:
-                if p > 1: # Geometric random variable, expect every driver to do 10 rides per night
-                    assigned_driver.time += dt.timedelta(minutes = 10)
+                if p > 1: # Geometric random variable, expect every driver to do 15 rides per night
+                    driver.time += dt.timedelta(minutes = approx_arrival_time + approx_drive_time)
+                    driver.coords = passenger.end_coords
                     heapq.heappush(driver_queue, (driver, driver.time))
                     continue        
             heapq.heappush(driver_queue, (driver, driver.time))
