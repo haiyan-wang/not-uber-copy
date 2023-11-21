@@ -2,7 +2,9 @@ import datetime as dt
 import heapq
 import math
 
-from T1 import LAT2MI, LON2MI
+### Based on sampling two points in NYC and calculating lat/lon mile distance
+LON2MI = 45.5
+LAT2MI = 60.0
 
 
 class NotUberObject:
@@ -122,7 +124,7 @@ class Node(NotUberObject):
             if current_node == end_node:
                 return current_dist
             
-            if current_node.id in distances and priority > priority[current_node.id]:
+            if current_node.id in distances and priority > distances[current_node.id]:
                 continue
             
             for edge in current_node.neighbors:
