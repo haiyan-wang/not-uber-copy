@@ -123,6 +123,7 @@ def main():
     passenger_queue = deque(PASSENGERS) # Priority queue for passenger by ride request time (already sorted and no pushes so we use deque)
 
     while passenger_queue:
+        print(len(passenger_queue))
 
         available_drivers = [] # Available drivers when passenger makes request
 
@@ -180,7 +181,7 @@ def main():
         driver_idle_times.append(driver_idle_time)
         
         # Add drivers back to queue, simulating potential driver drop out
-        p = random.randint(1, 15)
+        p = random.randint(1, 1500)
         for driver in available_drivers:
             if driver == assigned_driver:
                 if p > 1: # Geometric random variable, expect every driver to do 15 rides per night
