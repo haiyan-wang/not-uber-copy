@@ -316,12 +316,12 @@ def main():
             print(f'Average Passenger Wait Time: {sum(passenger_wait_times) / len(passenger_wait_times)} minutes')
             print(f'Average Driver Idle Time: {sum(driver_idle_times) / len(driver_idle_times)} minutes')
             print(f'Total Driver Profit: {total_ride_profit} minutes')
-            print(f'Average Driver Profit: {total_ride_profit / len(DRIVERS)} minutes')
+            print(f'Average Driver Profit: {(total_ride_profit*len(PASSENGERS)/(len(PASSENGERS) - len(passenger_queue))) / len(DRIVERS)} minutes')
     
-    print(f'Average Passenger Wait Time: {sum(passenger_wait_times) / len(passenger_wait_times)} minutes')
-    print(f'Average Driver Idle Time: {sum(driver_idle_times) / len(driver_idle_times)} minutes')
-    print(f'Total Driver Profit: {total_ride_profit} minutes')
-    print(f'Average Driver Profit: {(total_ride_profit*len(PASSENGERS)/(len(PASSENGERS) - len(passenger_queue))) / len(DRIVERS)} minutes')
+        print(f'Average Passenger Wait Time: {sum(passenger_wait_times) / len(passenger_wait_times)} minutes')
+        print(f'Average Driver Idle Time: {sum(driver_idle_times) / len(driver_idle_times)} minutes')
+        print(f'Total Driver Profit: {total_ride_profit} minutes')
+        print(f'Average Driver Profit: {total_ride_profit / len(DRIVERS)} minutes')
 
 if __name__ == '__main__':
     START = time.time() # Timing simulation
