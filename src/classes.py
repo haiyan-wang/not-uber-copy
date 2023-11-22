@@ -134,7 +134,7 @@ class Node(NotUberObject):
                 new_priority = new_dist + heuristic(neighbor, end_node) # new priority for A* algo = time from the start point to neighbor edge + heuristic function for time from neigbor edge to destination edge
                 if neighbor.id not in distances or new_dist < distances[neighbor.id]:
                     distances[neighbor.id] = new_dist
-                    heapq.heappush(pq, (new_priority, new_dist, neighbor))
+                    heapq.heappush(pq, (new_priority, (new_dist, neighbor)))
                     
         return -1
     
