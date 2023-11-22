@@ -111,20 +111,21 @@ class Node(NotUberObject):
             
             distance_in_miles = math.sqrt((lat_dist_in_miles)**2 + (lon_dist_in_miles)**2)
 
-            time = distance_in_miles/AVG_MPH
+            time = 60*distance_in_miles/AVG_MPH
             return time
 
         distances = {}
         distances[self.id] = 0
-        pq = [(0, 0, self)]
+        pq = [(0, (0, self))]
 
         while pq:
-            priority, current_dist, current_node = heapq.heappop(pq)
+            curr = heapq.heappop(pq)
+            priority, current_dist, current_node = curr[0], curr[1][0], curr[1][1]
             
             if current_node == end_node:
                 return current_dist
             
-            if current_node.id in distances and priority > distances[current_node.id]:
+            if current_node.id in distances and current_dist > distances[current_node.id]:
                 continue
             
             for edge in current_node.neighbors:
@@ -132,7 +133,7 @@ class Node(NotUberObject):
                 new_dist = current_dist + edge.travel_time(start_time) # Heuristic - finding path with shortest time to destination at start time (without accounting for changes during travel)
                 new_priority = new_dist + heuristic(neighbor, end_node) # new priority for A* algo = time from the start point to neighbor edge + heuristic function for time from neigbor edge to destination edge
                 if neighbor.id not in distances or new_dist < distances[neighbor.id]:
-                    distances[neighbor.id] = new_priority
+                    distances[neighbor.id] = new_dist
                     heapq.heappush(pq, (new_priority, new_dist, neighbor))
                     
         return -1
@@ -203,6 +204,19 @@ class Person(NotUberObject):
         # Index of subpartition in grid matrix
         return (lat_idx, lon_idx)
     
+    def grid_search(self, idx1, idx2, n):
+
+        surrounding_grid = []
+        for i in range(-n, n+1):
+            if(idx1+i >= 30):
+                continue
+            for j in range(-n, n+1):
+                if(idx2+j >= 30):
+                    continue
+                surrounding_grid.append((abs(idx1+i), abs(idx2+j)))
+        
+        return list(set(surrounding_grid))
+    
     def assign_node(self, coords: tuple = None, grid: list = None, grid_params: list = None) -> Node:
         '''
         Assign Person to nearest node given coordinates and partition grid
@@ -214,16 +228,13 @@ class Person(NotUberObject):
         lat_idx, lon_idx = self.partition(coords, grid_params) # Get subpartition of object
 
         # Get surrounding subpartitions (max 3x3 grid surrounding subpartition)
-        surrounding_grid = []
-        for i in range(-1, 2):
-            for j in range(-1, 2):
-                surrounding_grid.append((abs(lat_idx+i), abs(lon_idx+j)))
-        search_space = list(set(surrounding_grid))
-
-        # Get all nodes in search space
         nodes = []
-        for idx1, idx2 in search_space:
-            nodes.extend(grid[idx1][idx2])
+        n = 1
+        while not nodes:
+            search_space = self.grid_search(lat_idx, lon_idx, n)
+            for idx1, idx2 in search_space:
+                nodes.extend(grid[idx1][idx2])
+            n += 1
 
         # Find nearest node
         nearest_node = None
