@@ -167,7 +167,7 @@ def main():
         approx_arrival_time = manhattan_est_time(driver.coords, passenger.coords) # Time for driver to pick up
         approx_drive_time = manhattan_est_time(passenger.coords, passenger.end_coords) # Time for driver to drop off
         total_ride_profit += approx_drive_time - approx_arrival_time # Ride profit
-        passenger_wait_time += approx_arrival_time # Passenger wait time (time for match + time for pickup)
+        passenger_wait_time += approx_arrival_time + approx_drive_time # Passenger wait time (time for match + time for pickup)
         passenger_wait_times.append(passenger_wait_time)
         driver_idle_times.append(driver_idle_time)
         
