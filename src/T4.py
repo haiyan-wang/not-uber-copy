@@ -137,7 +137,7 @@ def main():
     passenger_queue = deque(PASSENGERS) # Priority queue for passenger by ride request time (already sorted and no pushes so we use deque)
 
     while passenger_queue:
-
+        print(len(passenger_queue))
         available_drivers = [] # Available drivers when passenger makes request
 
         # Match passenger and driver

@@ -61,6 +61,9 @@ class Node(NotUberObject):
     def __eq__(self, other) -> bool:
         return isinstance(self, Node) and isinstance(other, Node) and self.id == other.id
 
+    def __hash__(self) -> int:
+        return self.id if self.id is not None else super().__hash__() 
+
     def shortest_path(self, end_node, start_time: dt.datetime) -> float:
         '''
         Dijkstra's Algorithm to find shortest travel time between two nodes
@@ -113,29 +116,31 @@ class Node(NotUberObject):
 
             time = 60*distance_in_miles/AVG_MPH
             return time
-
-        distances = {}
-        distances[self.id] = 0
-        pq = [(0, (0, self))]
-
-        while pq:
-            curr = heapq.heappop(pq)
-            priority, current_dist, current_node = curr[0], curr[1][0], curr[1][1]
+        
+        open_nodes = [(heuristic(self, end_node), self)]
+        open_set = set()
+        open_set.add(self)
+        
+        g = {}
+        g[self] = 0
+        
+        while len(open_nodes) > 0:
+            _, curr_node = heapq.heappop(open_nodes)
+            open_set.remove(curr_node)
             
-            if current_node == end_node:
-                return current_dist
+            if curr_node == end_node:
+                return g[curr_node]
             
-            if current_node.id in distances and current_dist > distances[current_node.id]:
-                continue
-            
-            for edge in current_node.neighbors:
+            for edge in curr_node.neighbors:
                 neighbor = edge.end_node
-                new_dist = current_dist + edge.travel_time(start_time) # Heuristic - finding path with shortest time to destination at start time (without accounting for changes during travel)
-                new_priority = new_dist + heuristic(neighbor, end_node) # new priority for A* algo = time from the start point to neighbor edge + heuristic function for time from neigbor edge to destination edge
-                if neighbor.id not in distances or new_dist < distances[neighbor.id]:
-                    distances[neighbor.id] = new_dist
-                    heapq.heappush(pq, (new_priority, (new_dist, neighbor)))
-                    
+                new_g = g[curr_node] + edge.travel_time(start_time)
+                if neighbor not in g.keys() or new_g < g[neighbor]:
+                    g[neighbor] = new_g
+                    new_f = new_g + heuristic(neighbor, end_node)
+                    if neighbor not in open_set:
+                        open_set.add(neighbor)
+                        heapq.heappush(open_nodes, (new_f, neighbor))
+        
         return -1
     
     def partition(self, grid: list = None, grid_params: list = None) -> None:
@@ -164,6 +169,7 @@ class Person(NotUberObject):
     def __init__(self, id: int = None, timestamp: str = None, lat: float = None, lon: float = None) -> None:
         super().__init__(id, lat, lon)
         self.time = dt.datetime.strptime(timestamp, "%m/%d/%Y %H:%M:%S")
+        self.node = None
 
     def __eq__(self, other) -> bool:
         return isinstance(self, Person) and isinstance(other, Person) and self.id == other.id
@@ -253,6 +259,9 @@ class Driver(Person):
 
     def __eq__(self, other) -> bool:
         return isinstance(self, Driver) and isinstance(other, Driver) and self.id == other.id
+    
+    def __hash__(self) -> int:
+        return self.id
 
 class Passenger(Person):
 
@@ -300,6 +309,14 @@ class Edge:
             return 60*self.length / float(self.weekend_speeds[hour])
         else:
             return 60*self.length / float(self.weekday_speeds[hour])
+        
+    def __eq__(self, other: object) -> bool:
+        return (isinstance(other, self.__class__) and 
+            ((self.start_node == other.start_node and self.end_node == other.end_node) or
+             (self.end_node == other.start_node and self.start_node == other.end_node)))
+        
+    def __hash__(self) -> int:
+        return round(0.5 * (self.start_node.id + self.end_node.id)*(self.start_node.id + self.end_node.id + 1) + self.end_node.id)
         
 '''
 class Ride:
